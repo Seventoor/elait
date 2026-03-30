@@ -1,4 +1,5 @@
-
+# Dependencies
+vendor/
 
 # Config & Auth Files
 .env
