@@ -21,15 +21,17 @@ func NewTranslator(cfg Config) *Translator {
 
 func (t *Translator) Translate(ctx context.Context, text string, targetLang string) (string, error) {
 	resp, err := t.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model: openai.GPT4oMini,
+		Model:               openai.GPT4oMini,
+		Temperature:         0,
+		MaxCompletionTokens: 200,
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
-				Content: "Du übersetzt Predigttexte. Behalte biblische Sprachformen bei. Gib nur die Übersetzung zurück, nichts anderes.",
+				Content: "You are a translation engine. Output ONLY the translated text. No explanations, no notes, no quotes, no formatting. Just the raw translation.",
 			},
 			{
 				Role:    openai.ChatMessageRoleUser,
-				Content: fmt.Sprintf("Übersetze ins %s: %s", targetLang, text),
+				Content: fmt.Sprintf("Translate the following sermon text to %s:\n\n%s", targetLang, text),
 			},
 		},
 	})

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -41,10 +42,12 @@ func (c MyCallback) Message(mr *api.MessageResponse) error {
 					}
 					fmt.Printf("[Final] %s \n", translated)
 
-					audio, _ := c.tts.TextToSpeech(ctx, translated, targetLang)
-					if err == nil {
-						c.hub.Broadcast(audio, targetLang)
+					audio, err := c.tts.TextToSpeech(ctx, translated, targetLang)
+					if err != nil {
+						log.Printf("TTS Fehler: %v", err)
+						return
 					}
+					c.hub.Broadcast(audio, targetLang)
 				}()
 			}
 		} else {

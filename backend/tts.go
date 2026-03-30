@@ -56,7 +56,7 @@ func (s *SpeechEngine) TextToSpeech(ctx context.Context, text string, lang strin
 		},
 		AudioConfig: &texttospeechpb.AudioConfig{
 			AudioEncoding:   texttospeechpb.AudioEncoding_MP3,
-			SampleRateHertz: 24000,
+			SampleRateHertz: 48000,
 		},
 	}
 

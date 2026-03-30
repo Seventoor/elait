@@ -22,6 +22,11 @@ func main() {
 
 	router := http.NewServeMux()
 
+	// Sender Page
+	router.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "web/index.html")
+	})
+
 	// Sender Stream
 	router.HandleFunc("GET /ws", func(w http.ResponseWriter, r *http.Request) {
 		audioIncomeHandler(w, r, cfg.DeepgramAPIKey, cfg, myTranslator, myTTS, hub)
@@ -30,6 +35,11 @@ func main() {
 	// Receiver Stream
 	router.HandleFunc("GET /audio-ws", func(w http.ResponseWriter, r *http.Request) {
 		audioOutcomeHandler(w, r, hub)
+	})
+
+	// Receiver Page
+	router.HandleFunc("GET /stream", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "web/stream.html")
 	})
 
 	fmt.Println("Server läuft auf http://localhost:8080")
