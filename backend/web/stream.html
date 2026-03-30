@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Live Übersetzung</h2>
+<button id="start">Verbinden</button>
+<button id="stop">Trennen</button>
+<select id="language-selected">
+    <option selected="selected" value="en-US">English (US)</option>
+    <option value="ru-RU">Russisch</option>
+</select>
+<script>
+    let ws
+    let audioQueue = [];
+    let isPlaying = false;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const languageSelect = document.getElementById('language-selected')
+
+    document.getElementById('start').onclick = () => {
+        ws = new WebSocket(`ws://localhost:8080/audio-ws?lang=${languageSelect.value}`)
+        ws.binaryType = 'arraybuffer'
+        languageSelect.disabled = true
+
+        ws.onmessage = (event) => {
+            audioQueue.push(event.data);
+            playNext();
+        };
+
+        ws.onclose = (CloseEvent) => {
+            languageSelect.disabled = false;
+            audioQueue = [];
+        };
+    }
+
+    async function playNext() {
+        if (isPlaying || audioQueue.length === 0) return;
+
+        isPlaying = true;
+        const rawData = audioQueue.shift();
+
+        try {
+            const audioBuffer = await audioCtx.decodeAudioData(rawData);
+            const source = audioCtx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioCtx.destination);
+
+            source.onended = () => {
+                isPlaying = false;
+                playNext();
+            };
+
+            source.start(0);
+        } catch (e) {
+            console.error("Fehler beim Dekodieren:", e);
+            isPlaying = false;
+            playNext();
+        }
+    }
+
+    document.getElementById('stop').onclick = () => {
+        if (ws) ws.close();
+        isPlaying = false;
+        audioQueue = [];
+    };
+</script>
+</body>
+</html>
