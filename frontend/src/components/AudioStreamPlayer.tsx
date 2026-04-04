@@ -2,15 +2,15 @@ import { config } from "@/config"
 import {useCallback, useEffect, useRef, useState} from "react";
 import { Button } from "@/components/ui/button.tsx";
 import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { Play, Pause } from "lucide-react"
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxTrigger,
+    ComboboxValue,
+    ComboboxItem,
+    ComboboxList, ComboboxInput,
+} from "@/components/ui/combobox"
+import { Play, Pause, ChevronDown, Volume2, VolumeX } from "lucide-react"
 
 interface AudioStreamPlayerProps {
     className?: string
@@ -25,12 +25,25 @@ export default function AudioStreamPlayer({
     const [audioQueue, setAudioQueue] = useState<ArrayBuffer[]>([])
     const [isPlaying, setIsPlaying] = useState<boolean>(false)
     const [isStarted, setIsStarted] = useState<boolean>(false)
+    const [volumeOn, setVolumeOn] = useState<boolean>(true)
 
-    // useRef damit audioCtx nicht bei jedem Re-render neu erstellt wird
+    const languages = [
+        { label: "English", value: "en-US" },
+        { label: "Russian", value: "ru-RU" },
+    ];
+
     const audioCtxRef = useRef<AudioContext | null>(null)
+    const gainNodeRef = useRef<GainNode | null>(null)
+
     if (!audioCtxRef.current) {
         audioCtxRef.current = new AudioContext()
     }
+
+    if (!gainNodeRef.current) {
+        gainNodeRef.current = audioCtxRef.current.createGain()
+        gainNodeRef.current.connect(audioCtxRef.current.destination)
+    }
+
 
     const playNext = useCallback(async () => {
         if (isPlaying || audioQueue.length === 0) return
@@ -43,7 +56,8 @@ export default function AudioStreamPlayer({
             const audioBuffer = await audioCtxRef.current!.decodeAudioData(rawData)
             const source = audioCtxRef.current!.createBufferSource()
             source.buffer = audioBuffer
-            source.connect(audioCtxRef.current!.destination)
+            source.connect(gainNodeRef.current!)
+            gainNodeRef.current!.connect(audioCtxRef.current!.destination)
 
             source.onended = () => {
                 setIsPlaying(false)
@@ -64,6 +78,16 @@ export default function AudioStreamPlayer({
             setIsPlaying(false)
         } else {
             setIsStarted(true)
+        }
+    }
+
+    const handleVolume = () => {
+        if (volumeOn) {
+            setVolumeOn(false)
+            gainNodeRef.current!.gain.value = 0
+        } else {
+            setVolumeOn(true)
+            gainNodeRef.current!.gain.value = 1
         }
     }
 
@@ -92,20 +116,38 @@ export default function AudioStreamPlayer({
 
     return (
         <div className={`flex items-center gap-2 ${className}`}>
-            <Select onValueChange={setLanguage} disabled={isStarted} >
-                <SelectTrigger className="w-full max-w-48">
-                    <SelectValue placeholder="Sprache / Language" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectGroup>
-                        <SelectLabel>Sprachen</SelectLabel>
-                        <SelectItem value="en-US">English</SelectItem>
-                        <SelectItem value="ru-RU">Русский</SelectItem>
-                    </SelectGroup>
-                </SelectContent>
-            </Select>
+            <Combobox items={languages} defaultValue={languages[0]}>
+                <ComboboxTrigger render={
+                    <Button variant="outline" className="w-64 h-7.5 justify-between font-normal">
+                        <ComboboxValue />
+                        <ChevronDown />
+                    </Button>
+                } />
+                <ComboboxContent>
+                    <ComboboxInput showTrigger={false} placeholder="Search" />
+                    <ComboboxEmpty>No items found.</ComboboxEmpty>
+                    <ComboboxList>
+                        {(item) => (
+                            <ComboboxItem
+                                key={item.value}
+                                value={item.value}
+                                onSelect={() => {
+                                    setLanguage(item.value);
+                                }}
+                            >
+                                {item.label}
+                            </ComboboxItem>
+                        )}
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
+
             <Button variant="default" size="icon-lg" className="cursor-pointer" onClick={handlePlayPause}>
                 {isStarted ? <Pause /> : <Play />}
+            </Button>
+
+            <Button variant="outline" size="icon-lg" className="cursor-pointer" onClick={handleVolume}>
+                {volumeOn ? <Volume2 /> : <VolumeX />}
             </Button>
         </div>
     )
