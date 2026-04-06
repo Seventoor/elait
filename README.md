@@ -1,4 +1,4 @@
-# Project Name
+# Event Live AI Translation
 
 A real-time audio streaming application with live transcription and translation powered by Deepgram, Google Cloud, and OpenAI.
 
@@ -44,14 +44,12 @@ cp .env.sample .env
 2. Create a new project or select an existing one
 3. Enable the following APIs:
    - **Cloud Speech-to-Text API**
-   - **Cloud Translation API**
 4. Create a Service Account:
    - Go to **IAM & Admin → Service Accounts**
    - Click **Create Service Account**
    - Give it a name and click **Create and Continue**
    - Assign the following roles:
      - `Cloud Speech Administrator`
-     - `Cloud Translation API User`
    - Click **Done**
 5. Generate a JSON key:
    - Click on the created service account
