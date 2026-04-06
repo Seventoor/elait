@@ -7,30 +7,15 @@ import (
 
 	texttospeech "cloud.google.com/go/texttospeech/apiv1"
 	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
+	"github.com/Turbocommerce/clait/config"
 )
 
 type SpeechEngine struct {
 	client *texttospeech.Client
-	cfg    Config
+	cfg    config.Config
 }
 
-var BestVoices = map[string]string{
-	"de-DE": "de-DE-Neural2-B",
-	"de-AT": "de-AT-Neural2-A",
-	"en-US": "en-US-Chirp3-HD-Orus",
-	"en-GB": "en-GB-Neural2-B",
-	"ru-RU": "ru-RU-Wavenet-D",
-}
-
-func (s *SpeechEngine) GetVoiceForLang(ctx context.Context, lang string) string {
-	if voice, ok := BestVoices[lang]; ok {
-		return voice
-	}
-
-	return getBestVoice(ctx, s.client, lang)
-}
-
-func NewSpeechEngine(cfg Config) (*SpeechEngine, error) {
+func NewSpeechEngine(cfg config.Config) (*SpeechEngine, error) {
 	ctx := context.Background()
 	client, err := texttospeech.NewClient(ctx)
 	if err != nil {
@@ -44,7 +29,7 @@ func NewSpeechEngine(cfg Config) (*SpeechEngine, error) {
 }
 
 func (s *SpeechEngine) TextToSpeech(ctx context.Context, text string, lang string) ([]byte, error) {
-	currentVoice := s.GetVoiceForLang(ctx, lang)
+	currentVoice := s.getBestVoice(ctx, s.client, lang)
 
 	req := &texttospeechpb.SynthesizeSpeechRequest{
 		Input: &texttospeechpb.SynthesisInput{
@@ -68,7 +53,7 @@ func (s *SpeechEngine) TextToSpeech(ctx context.Context, text string, lang strin
 	return resp.AudioContent, nil
 }
 
-func getBestVoice(ctx context.Context, client *texttospeech.Client, languageCode string) string {
+func (s *SpeechEngine) getBestVoice(ctx context.Context, client *texttospeech.Client, languageCode string) string {
 	resp, err := client.ListVoices(ctx, &texttospeechpb.ListVoicesRequest{
 		LanguageCode: languageCode,
 	})
@@ -76,15 +61,27 @@ func getBestVoice(ctx context.Context, client *texttospeech.Client, languageCode
 		return ""
 	}
 
-	// Neural2 > Wavenet > Standard — beste Qualität zuerst
-	priority := []string{"Neural2", "Polyglot", "Wavenet", "Standard"}
+	priority := []string{"Chirp3-HD-Orus", "Neural2", "Polyglot", "Wavenet", "Standard"}
 
-	for _, tier := range priority {
-		for _, voice := range resp.Voices {
+	bestVoice := ""
+	bestPriorityIndex := len(priority)
+
+	for _, voice := range resp.Voices {
+		// Only male voices for now, later as a setting in admin panel
+		if voice.SsmlGender != texttospeechpb.SsmlVoiceGender_MALE {
+			continue
+		}
+
+		for i, tier := range priority {
 			if strings.Contains(voice.Name, tier) {
-				return "ru-RU-Wavenet-D"
+				if i < bestPriorityIndex {
+					bestPriorityIndex = i
+					bestVoice = voice.Name
+				}
+				break
 			}
 		}
 	}
-	return ""
+
+	return bestVoice
 }

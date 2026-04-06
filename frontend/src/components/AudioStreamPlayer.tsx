@@ -1,5 +1,4 @@
-import { config } from "@/config"
-import {useCallback, useEffect, useRef, useState} from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button.tsx";
 import {
     Combobox,
@@ -11,6 +10,9 @@ import {
     ComboboxList, ComboboxInput,
 } from "@/components/ui/combobox"
 import { Play, Pause, ChevronDown, Volume2, VolumeX } from "lucide-react"
+import FlagIcon from "@/components/FlagIcon.tsx"
+import {useAudioStream} from "@/hooks/useAudioStream.ts";
+import {useLanguages} from "@/hooks/useLanguages.ts";
 
 interface AudioStreamPlayerProps {
     className?: string
@@ -21,105 +23,35 @@ export default function AudioStreamPlayer({
   className,
   stream_id,
 }: AudioStreamPlayerProps) {
-    const [language, setLanguage] = useState<string>('ru-RU')
-    const [audioQueue, setAudioQueue] = useState<ArrayBuffer[]>([])
-    const [isPlaying, setIsPlaying] = useState<boolean>(false)
-    const [isStarted, setIsStarted] = useState<boolean>(false)
-    const [volumeOn, setVolumeOn] = useState<boolean>(true)
 
-    const languages = [
-        { label: "English", value: "en-US" },
-        { label: "Russian", value: "ru-RU" },
-    ];
+    const { isPending, isError, data, error } = useLanguages()
 
-    const audioCtxRef = useRef<AudioContext | null>(null)
-    const gainNodeRef = useRef<GainNode | null>(null)
+    const [language, setLanguage] = useState<string>("en-US")
 
-    if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioContext()
+    const {
+        isStarted,
+        isPlaying,
+        volumeOn,
+        handlePlayPause,
+        handleVolume
+    } = useAudioStream(language, stream_id)
+
+    const getLanguageName = (code: string) => {
+        return data?.find((lang) => lang.code === code)?.name
     }
 
-    if (!gainNodeRef.current) {
-        gainNodeRef.current = audioCtxRef.current.createGain()
-        gainNodeRef.current.connect(audioCtxRef.current.destination)
-    }
-
-
-    const playNext = useCallback(async () => {
-        if (isPlaying || audioQueue.length === 0) return
-
-        setIsPlaying(true)
-        const rawData = audioQueue[0]
-        setAudioQueue(prev => prev.slice(1))
-
-        try {
-            const audioBuffer = await audioCtxRef.current!.decodeAudioData(rawData)
-            const source = audioCtxRef.current!.createBufferSource()
-            source.buffer = audioBuffer
-            source.connect(gainNodeRef.current!)
-            gainNodeRef.current!.connect(audioCtxRef.current!.destination)
-
-            source.onended = () => {
-                setIsPlaying(false)
-            }
-
-            source.start(0)
-        } catch (e) {
-            console.error("Fehler beim Dekodieren:", e)
-            setIsPlaying(false)
-            playNext()
-        }
-    }, [isPlaying, audioQueue])
-
-    const handlePlayPause = () => {
-        if (isStarted) {
-            setIsStarted(false)
-            setAudioQueue([])
-            setIsPlaying(false)
-        } else {
-            setIsStarted(true)
-        }
-    }
-
-    const handleVolume = () => {
-        if (volumeOn) {
-            setVolumeOn(false)
-            gainNodeRef.current!.gain.value = 0
-        } else {
-            setVolumeOn(true)
-            gainNodeRef.current!.gain.value = 1
-        }
-    }
-
-    useEffect(() => {
-        if (isStarted) {
-            const ws = new WebSocket(`${config.wsUrl}/audio-ws?lang=${language}&stream_id=${stream_id}`)
-            ws.binaryType = 'arraybuffer'
-
-            ws.onmessage = (event) => {
-                setAudioQueue(prev => [...prev, event.data])
-            }
-
-            ws.onclose = () => {
-                setAudioQueue([])
-            }
-
-            return () => ws.close()
-        }
-    }, [language, stream_id, isStarted])
-
-    useEffect(() => {
-        if (isStarted && !isPlaying && audioQueue.length > 0) {
-            playNext()
-        }
-    }, [audioQueue, isPlaying, playNext, isStarted])
+    if (isPending) return (<div>Loading...</div>)
+    if (isError) return (<div>Error: {error.message}</div>)
 
     return (
         <div className={`flex items-center gap-2 ${className}`}>
-            <Combobox items={languages} defaultValue={languages[0]}>
+            <Combobox items={data} value={getLanguageName(language)} onValueChange={(val) => { if (val) setLanguage(val); }}>
                 <ComboboxTrigger render={
-                    <Button variant="outline" className="w-64 h-7.5 justify-between font-normal">
-                        <ComboboxValue />
+                    <Button variant="outline" className="flex-1 min-w-0 md:flex-0 md:min-w-64 h-9.5 justify-between font-normal text-sm cursor-pointer bg-white" disabled={isStarted}>
+                        <div className="flex items-center gap-2">
+                            <FlagIcon code={language} />
+                            <ComboboxValue />
+                        </div>
                         <ChevronDown />
                     </Button>
                 } />
@@ -129,24 +61,23 @@ export default function AudioStreamPlayer({
                     <ComboboxList>
                         {(item) => (
                             <ComboboxItem
-                                key={item.value}
-                                value={item.value}
-                                onSelect={() => {
-                                    setLanguage(item.value);
-                                }}
+                                key={item.code}
+                                value={item.code}
+                                className="cursor-pointer"
                             >
-                                {item.label}
+                                <FlagIcon code={item.code} />
+                                {item.name}
                             </ComboboxItem>
                         )}
                     </ComboboxList>
                 </ComboboxContent>
             </Combobox>
 
-            <Button variant="default" size="icon-lg" className="cursor-pointer" onClick={handlePlayPause}>
+            <Button variant="default" size="icon-xl" className="cursor-pointer" onClick={handlePlayPause}>
                 {isStarted ? <Pause /> : <Play />}
             </Button>
 
-            <Button variant="outline" size="icon-lg" className="cursor-pointer" onClick={handleVolume}>
+            <Button variant="outline" size="icon-xl" className="cursor-pointer" onClick={handleVolume}>
                 {volumeOn ? <Volume2 /> : <VolumeX />}
             </Button>
         </div>

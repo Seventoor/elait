@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
+	"github.com/Turbocommerce/clait/config"
 	"github.com/deepgram/deepgram-go-sdk/v3/pkg/client/interfaces"
 	client "github.com/deepgram/deepgram-go-sdk/v3/pkg/client/listen"
 	"github.com/gorilla/websocket"
@@ -17,7 +19,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func audioIncomeHandler(w http.ResponseWriter, r *http.Request, deepgramKey string, cfg Config, tr *Translator, tts *SpeechEngine, hub *Hub) {
+func audioIncomeHandler(w http.ResponseWriter, r *http.Request, deepgramKey string, cfg config.Config, tr *Translator, tts *SpeechEngine, hub *Hub) {
 	ctx := context.Background()
 	options := &interfaces.LiveTranscriptionOptions{
 		Model:          "nova-3",
@@ -78,5 +80,17 @@ func audioOutcomeHandler(w http.ResponseWriter, r *http.Request, hub *Hub) {
 		if err != nil {
 			break
 		}
+	}
+}
+
+func languageListHandler(w http.ResponseWriter, r *http.Request) {
+	languages := config.Languages
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Encode the array as JSON and write it to the response
+	if err := json.NewEncoder(w).Encode(languages); err != nil {
+		http.Error(w, "Failed to encode languages", http.StatusInternalServerError)
+		return
 	}
 }

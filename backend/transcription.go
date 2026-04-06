@@ -7,11 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Turbocommerce/clait/config"
 	api "github.com/deepgram/deepgram-go-sdk/v3/pkg/api/listen/v1/websocket/interfaces"
 )
 
 type MyCallback struct {
-	cfg        Config
+	cfg        config.Config
 	translator *Translator
 	tts        *SpeechEngine
 	hub        *Hub

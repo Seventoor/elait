@@ -5,11 +5,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Turbocommerce/clait/config"
 	"github.com/gorilla/websocket"
 )
 
 func main() {
-	cfg := loadConfig()
+	cfg := config.LoadConfig()
 
 	myTranslator := NewTranslator(cfg)
 
@@ -25,6 +26,10 @@ func main() {
 	// Sender Page
 	router.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "web/index.html")
+	})
+
+	router.HandleFunc("GET /lang-list", func(w http.ResponseWriter, r *http.Request) {
+		languageListHandler(w, r)
 	})
 
 	// Sender Stream
@@ -43,5 +48,5 @@ func main() {
 	})
 
 	fmt.Println("Server läuft auf http://localhost:8080")
-	http.ListenAndServe(":8080", router)
+	http.ListenAndServe(":8080", corsMiddleware(router))
 }

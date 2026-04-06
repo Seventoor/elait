@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"log"
@@ -12,13 +12,13 @@ type Config struct {
 	DeepgramAPIKey string
 	OpenAIAPIKey   string
 
-	SourceLanguage string // Sprache, die gesprochen wird (z.B. "de")
+	SourceLanguage string // Sprache, die gesprochen wird -> ISO 639-1
 
 	SpeechRate  string
 	SpeechPitch string
 }
 
-func loadConfig() Config {
+func LoadConfig() Config {
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Keine .env Datei gefunden, verwende System-Umgebungsvariablen")

@@ -4,15 +4,16 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Turbocommerce/clait/config"
 	"github.com/sashabaranov/go-openai"
 )
 
 type Translator struct {
 	client *openai.Client
-	cfg    Config
+	cfg    config.Config
 }
 
-func NewTranslator(cfg Config) *Translator {
+func NewTranslator(cfg config.Config) *Translator {
 	return &Translator{
 		client: openai.NewClient(cfg.OpenAIAPIKey),
 		cfg:    cfg,
