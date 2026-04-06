@@ -1,6 +1,6 @@
 # Event Live AI Translation
 
-A real-time audio streaming application with live transcription and translation powered by Deepgram, Google Cloud, and OpenAI.
+A cheap real-time audio streaming application with live transcription and translation powered by Deepgram (STT), Google Cloud (TTS), and OpenAI (Translation).
 
 ---
 
