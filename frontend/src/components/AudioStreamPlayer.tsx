@@ -30,7 +30,6 @@ export default function AudioStreamPlayer({
 
     const {
         isStarted,
-        isPlaying,
         volumeOn,
         handlePlayPause,
         handleVolume
